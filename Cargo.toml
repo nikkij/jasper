@@ -1,0 +1,40 @@
+[package]
+name = "jasper"
+version = "0.1.0"
+edition = "2024"
+description = "A distributed time series database"
+license = "MIT"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }
+tokio-util = "0.7"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+bincode = "1.3"
+
+# Logging and tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Utilities
+uuid = { version = "1.0", features = ["v4", "serde"] }
+bytes = "1.0"
+
+# Configuration
+serde_yaml = "0.9"
+clap = { version = "4.0", features = ["derive"] }
+
+# Compression (for later)
+lz4_flex = "0.11"
+
+[lib]
+path = "src/storage/mod.rs"
