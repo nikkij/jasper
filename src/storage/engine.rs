@@ -48,6 +48,21 @@ impl StorageEngine {
         Ok(datapoints)
     }
 
+    // Read filtered by label and timestamp
+    pub fn read_filtered(
+        &self,
+        label: &Label,
+        start: &Timestamp,
+        end: &Timestamp,
+    ) -> io::Result<Vec<DataPoint>> {
+        let all = self.read_all()?;
+        let filtered = all
+            .into_iter()
+            .filter(|p| &p.label == label && p.timestamp.0 >= start.0 && p.timestamp.0 <= end.0)
+            .collect();
+        Ok(filtered)
+    }
+
     // pub fn read(&self) -> io::Result<String> {
     //     let file = File::open(&self.path)?;
     //     let buffered = BufReader::new(file);
