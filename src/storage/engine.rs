@@ -1,8 +1,8 @@
 use std::fs::{File, OpenOptions};
-use std::io;
-use std::io::prelude::*;
-use std::io::BufReader;
+use std::io::{self, BufReader, BufRead, Write};
 
+use crate::types::{DataPoint, Label, Timestamp};
+use serde_json;
 pub struct StorageEngine {
     pub path: String,
     pub file: io::Result<File>,
@@ -16,31 +16,46 @@ impl StorageEngine {
         }
     }
 
-    pub fn write(&self, line: &str) -> io::Result<()> {
+    pub fn write(&self, datapoint: &DataPoint) -> io::Result<()> {
         // Set the file path
-        //let path = "lines.txt";
         let path = &self.path;
 
         // Open the file in append mode, create it if it doesn't exist
-        let mut output = OpenOptions::new()
+        let mut file = OpenOptions::new()
             .create(true)      // create if it doesn't exist
             .append(true)      // append to the end of the file
             .open(path)?;      // open the file
 
         // Write the line to the file
-        write!(output, "{}\n", line)?;
+        let line = serde_json::to_string(datapoint)?;
+        writeln!(file, "{}", line)?;
 
         Ok(())
     }
 
-    pub fn read(&self) -> io::Result<String> {
+    /// Read all datapoints (you can later filter here)
+    pub fn read_all(&self) -> io::Result<Vec<DataPoint>> {
         let file = File::open(&self.path)?;
-        let buffered = BufReader::new(file);
-        let mut contents = String::new();
-        for line in buffered.lines() {
-            contents.push_str(&line?);
-            contents.push('\n');
+        let reader = BufReader::new(file);
+        let mut datapoints = vec![];
+
+        for line in reader.lines() {
+            let json = line?;
+            let datapoint: DataPoint = serde_json::from_str(&json)?;
+            datapoints.push(datapoint);
         }
-        Ok(contents)
+
+        Ok(datapoints)
     }
+
+    // pub fn read(&self) -> io::Result<String> {
+    //     let file = File::open(&self.path)?;
+    //     let buffered = BufReader::new(file);
+    //     let mut contents = String::new();
+    //     for line in buffered.lines() {
+    //         contents.push_str(&line?);
+    //         contents.push('\n');
+    //     }
+    //     Ok(contents)
+    // }
 }
