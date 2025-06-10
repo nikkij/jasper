@@ -1,9 +1,13 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tokio::net::TcpListener;
 use tokio::io::AsyncWriteExt;
 use tokio::io::AsyncBufReadExt;
 use anyhow::Result;
+use serde_json::from_str;
+
 use crate::storage::engine::StorageEngine;
+use crate::types::DataPoint;
 
 pub struct TCPServer {
     addr: String,
@@ -37,7 +41,7 @@ impl TCPServer {
 // Handle incoming connections
 async fn handle_client(
     mut stream: tokio::net::TcpStream,
-    storage: Arc<Mutex<StorageEngine>>,
+    storage: Arc<tokio::sync::Mutex<StorageEngine>>,
 ) -> Result<()> {
     
     let (reader, mut writer) = stream.split();
@@ -49,76 +53,59 @@ async fn handle_client(
         let bytes_read = reader.read_line(&mut line).await?;
 
         if bytes_read == 0 {
-            // Client closed connection
             println!("Client disconnected");
             break;
         }
 
-        println!("Received: {}", line.trim());
+        let line = line.trim();
+        println!("Received: {}", line);
 
-        // For now, just send back a simple acknowledgment
-        writer.write(b"OK\n").await?;
-        writer.flush().await?;
+        if line.starts_with("write ") {
+            let json_str = &line[6..];
+            let dp: DataPoint = match serde_json::from_str(json_str) {
+                Ok(dp) => dp,
+                Err(e) => {
+                    let err_msg = format!("Error parsing DataPoint: {}\n", e);
+                    writer.write_all(err_msg.as_bytes()).await?;
+                    writer.flush().await?;
+                    continue;
+                }
+            };
+            // Write to storage
+            let mut engine = storage.lock().await;
+            if let Err(e) = engine.write(&dp) {
+                let err_msg = format!("Error writing DataPoint: {}\n", e);
+                writer.write_all(err_msg.as_bytes()).await?;
+                writer.flush().await?;
+                continue;
+            }
+            writer.write_all(b"OK\n").await?;
+            writer.flush().await?;
+
+        } else if line == "read" {
+            let engine = storage.lock().await;
+            // Read all DataPoints from storage
+            match engine.read_all() {
+                Ok(contents) => {
+                    // Send the contents back
+                    // You can send raw JSON or format nicely; let's send JSON lines:
+                    for dp in contents {
+                        let json_line = serde_json::to_string(&dp)? + "\n";
+                        writer.write_all(json_line.as_bytes()).await?;
+                    }
+                    writer.flush().await?;
+                }
+                Err(e) => {
+                    let err_msg = format!("Error reading storage: {}\n", e);
+                    writer.write_all(err_msg.as_bytes()).await?;
+                    writer.flush().await?;
+                }
+            }
+        } else {
+            writer.write_all(b"Unknown command\n").await?;
+            writer.flush().await?;
+        }
     }
 
     Ok(())
 }
-
-
-// use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-// use tokio::net::{TcpListener, TcpStream};
-// use anyhow::Result;
-
-// pub struct TCPServer {
-//     addr: String,
-// }
-
-// impl TCPServer {
-//     pub fn new(addr: &str) -> Self {
-//         TCPServer {
-//             addr: addr.to_string(),
-//         }
-//     }
-
-//     pub async fn run(&self) -> Result<()> {
-//         let listener = TcpListener::bind(&self.addr).await?;
-//         println!("Server listening on {}", self.addr);
-
-//         loop {
-//             let (socket, addr) = listener.accept().await?;
-//             println!("Accepted connection from {}", addr);
-
-//             // Spawn a new task to handle this client connection
-//             tokio::spawn(async move {
-//                 if let Err(e) = handle_client(socket).await {
-//                     eprintln!("Error handling client {}: {:?}", addr, e);
-//                 }
-//             });
-//         }
-//     }
-// }
-
-// async fn handle_client(mut socket: TcpStream) -> Result<()> {
-//     let (reader, mut writer) = socket.split();
-//     let mut buf_reader = BufReader::new(reader);
-//     let mut line = String::new();
-
-//     loop {
-//         line.clear();
-//         let bytes_read = buf_reader.read_line(&mut line).await?;
-
-//         if bytes_read == 0 {
-//             // Client closed connection
-//             println!("Client disconnected");
-//             break;
-//         }
-
-//         println!("Received: {}", line.trim());
-
-//         // For now, just send back a simple acknowledgment
-//         writer.write_all(b"OK\n").await?;
-//     }
-
-//     Ok(())
-// }
-

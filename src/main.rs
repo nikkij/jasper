@@ -1,4 +1,5 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use clap::{Arg, Command};
 use tracing::{info, error};
 use tracing_subscriber;
