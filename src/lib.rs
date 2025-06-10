@@ -1,6 +1,8 @@
+pub mod network;
 pub mod storage;
 pub mod types;
 
+pub use network::TCPServer;
 pub use storage::StorageEngine;
 pub use types::{Timestamp, Label, DataPoint};
 
