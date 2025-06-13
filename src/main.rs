@@ -78,7 +78,7 @@ use jasper::network::server::TCPServer;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let engine = StorageEngine::new("jasper.log");
+    let engine = StorageEngine::new("jasper.wal");
     let shared_engine = Arc::new(Mutex::new(engine));
     
     let server = TCPServer::new("127.0.0.1:5860".to_string(), shared_engine);

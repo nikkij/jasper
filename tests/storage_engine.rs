@@ -22,7 +22,7 @@ fn now() -> Timestamp {
 
 #[test]
 fn test_write() -> Result<()> {
-    let test_path = "test_storage_engine.log";
+    let test_path = "test_storage_engine.wal";
 
     cleanup_test_file(test_path);
 

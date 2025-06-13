@@ -2,6 +2,8 @@ use std::fs::{File, OpenOptions};
 use std::io::{self, BufReader, BufRead, Write};
 
 use crate::types::{DataPoint, Label, Timestamp};
+use crate::storage::wal::Wal;
+
 use serde_json;
 pub struct StorageEngine {
     pub path: String,
@@ -27,8 +29,9 @@ impl StorageEngine {
             .open(path)?;      // open the file
 
         // Write the line to the file
-        let line = serde_json::to_string(datapoint)?;
-        writeln!(file, "{}", line)?;
+        let line = datapoint;
+        let mut writer = Wal::new(&path)?;
+        writer.append(&datapoint)?;
 
         Ok(())
     }
