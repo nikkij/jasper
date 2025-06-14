@@ -22,4 +22,11 @@ impl MemTable {
         self.data.get(&(label.clone(), timestamp.clone()))
     }
 
+    pub fn range(&self, label: &Label, start: &Timestamp, end: &Timestamp) -> Vec<&DataPoint> {
+       self.data
+        .range((label.clone(), *start)..=(label.clone(), *end))
+        .filter_map(|((l, _), v)| if l == label { Some(v) } else { None })
+        .collect()
+    }
+
 }
