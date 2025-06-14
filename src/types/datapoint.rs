@@ -7,3 +7,11 @@ pub struct DataPoint {
     pub timestamp: Timestamp,
     pub value: JsonValue,
 }
+
+impl PartialEq for DataPoint {
+    fn eq(&self, other: &Self) -> bool {
+        self.timestamp == other.timestamp
+            && self.label == other.label
+            && self.value == other.value
+    }
+}

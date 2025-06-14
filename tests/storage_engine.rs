@@ -26,7 +26,7 @@ fn test_write() -> Result<()> {
 
     cleanup_test_file(test_path);
 
-    let storage = StorageEngine::new(test_path);
+    let mut storage = StorageEngine::new(test_path)?;
 
     let dp1 = DataPoint {
         timestamp: now(),

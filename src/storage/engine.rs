@@ -3,35 +3,38 @@ use std::io::{self, BufReader, BufRead, Write};
 
 use crate::types::{DataPoint, Label, Timestamp};
 use crate::storage::wal::Wal;
+use crate::storage::memtable::MemTable;
 
 use serde_json;
 pub struct StorageEngine {
     pub path: String,
-    pub file: io::Result<File>,
+    pub wal: Wal,
+    pub memtable: MemTable,
 }
 
 impl StorageEngine {
-    pub fn new(path: &str) -> Self {
-        StorageEngine {
-            path: path.to_string(),
-            file: File::open(path),
-        }
+    pub fn new(path: &str) -> std::io::Result<Self> {
+        // Init data structures
+        let wal = Wal::new(path)?;       
+        let memtable = MemTable::new();  
+
+        // Return instance
+        Ok(Self {
+            path: path.to_string(),  // field name: value
+            wal,                     // reusing the local variable
+            memtable,
+        })
     }
 
-    pub fn write(&self, datapoint: &DataPoint) -> io::Result<()> {
-        // Set the file path
+    pub fn write(&mut self, datapoint: &DataPoint) -> io::Result<()> {
+        // Get desired WAL file path
         let path = &self.path;
 
-        // Open the file in append mode, create it if it doesn't exist
-        let mut file = OpenOptions::new()
-            .create(true)      // create if it doesn't exist
-            .append(true)      // append to the end of the file
-            .open(path)?;      // open the file
+        // Write datapoint to WAL
+        self.wal.append(&datapoint)?;
 
-        // Write the line to the file
-        let line = datapoint;
-        let mut writer = Wal::new(&path)?;
-        writer.append(&datapoint)?;
+        // Write datapoint to memtable
+        self.memtable.insert(datapoint);
 
         Ok(())
     }
@@ -65,15 +68,4 @@ impl StorageEngine {
             .collect();
         Ok(filtered)
     }
-
-    // pub fn read(&self) -> io::Result<String> {
-    //     let file = File::open(&self.path)?;
-    //     let buffered = BufReader::new(file);
-    //     let mut contents = String::new();
-    //     for line in buffered.lines() {
-    //         contents.push_str(&line?);
-    //         contents.push('\n');
-    //     }
-    //     Ok(contents)
-    // }
 }
