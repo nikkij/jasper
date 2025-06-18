@@ -78,6 +78,13 @@ use jasper::network::server::TCPServer;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // Initialize tracing
+    tracing_subscriber::fmt()
+        .with_env_filter("jasper=debug,info")
+        .init();
+
+    info!("Starting Jasper");
+    
     let engine = StorageEngine::new("jasper.wal")?;
     let shared_engine = Arc::new(Mutex::new(engine));
     
