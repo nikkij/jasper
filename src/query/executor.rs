@@ -28,8 +28,7 @@ pub fn execute_query(engine: &mut StorageEngine, query: QueryRequest) -> Value {
             let start = Timestamp(start);
             let end = Timestamp(end);
 
-            let results = engine.read_filtered(&label, &start, &end)
-                .unwrap_or_else(|_| Vec::new());  // handle error gracefully
+            let results = engine.read_filtered(&label, &start, &end);
             println!("Attempting to send {} results", results.len());
             json!({
                 "status": "ok",

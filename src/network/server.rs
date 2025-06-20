@@ -32,11 +32,11 @@ impl TCPServer {
             let (stream, _) = listener.accept().await?;
             let storage = Arc::clone(&self.storage);
 
-            println!("Accepted connection from {}", stream.peer_addr().unwrap());
+            info!("Accepted connection from {}", stream.peer_addr().unwrap());
 
             tokio::spawn(async move {
                 if let Err(e) = handle_client(stream, storage).await {
-                    eprintln!("Client error: {}", e);
+                    error!("Client error: {}", e);
                 }
             });
         }
